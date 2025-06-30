@@ -63,6 +63,16 @@ client.on('interactionCreate', async interaction => {
   const { commandName, options } = interaction;
 
   try {
+    if (commandName === 'hakkinda') {
+      return await interaction.editReply(`
+🤖 **Sowix Sorgu Botu**
+🔌 Proxy destekli, çoklu API ile çalışır
+👨‍💻 Hazırlayan: **leo.drown**
+🛠️ Güçlüdür, sessizdir, işini yapar.
+🇹🇷 Adana onaylıdır.
+      `);
+    }
+
     let url;
 
     switch (commandName) {
@@ -93,28 +103,20 @@ client.on('interactionCreate', async interaction => {
         url = `https://api.hexnox.pro/sowixapi/tcgsm.php?tc=${tc}`;
         break;
       }
-      case 'hakkinda': {
-        return await interaction.editReply(`
-🤖 **Sowix Sorgu Botu**
-🔌 Proxy destekli, çoklu API ile çalışır
-👨‍💻 Hazırlayan: **leo.drown**
-🛠️ Güçlüdür, sessizdir, işini yapar.
-🇹🇷 Adana onaylıdır.
-        `);
-      }
+      default:
+        return await interaction.editReply('Bilinmeyen komut 🚨');
     }
 
-    // allorigins proxy kullanımı
-    const proxyURL = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    // corsproxy.io proxy kullanımı
+    const proxyURL = `https://corsproxy.io/?${encodeURIComponent(url)}`;
     const response = await fetch(proxyURL);
     const data = await response.json();
 
     let finalOutput;
     try {
-      const parsed = JSON.parse(data.contents);
-      finalOutput = '```json\n' + JSON.stringify(parsed, null, 2) + '\n```';
+      finalOutput = '```json\n' + JSON.stringify(data, null, 2) + '\n```';
     } catch (e) {
-      finalOutput = '```' + data.contents + '```';
+      finalOutput = '```' + data + '```';
     }
 
     finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`;
