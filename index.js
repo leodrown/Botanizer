@@ -107,23 +107,24 @@ client.on('interactionCreate', async interaction => {
         return await interaction.editReply('Bilinmeyen komut 🚨');
     }
 
-    const proxyURL = `https://bb4757b0-d804-47d1-9ee7-d6fac476c4d0-00-2ldtcj7sqhydj.picard.replit.dev/proxy?url=${encodeURIComponent(url)}`;
+    // AllOrigins proxy kullanımı
+    const proxyURL = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyURL);
-    const textData = await response.text();
+    const data = await response.json();
 
-    let data;
+    // API cevabı AllOrigins formatında, içerik data.contents içinde
+    let parsedData;
     try {
-      data = JSON.parse(textData);
-    } catch (err) {
-      console.error('JSON parse hatası:', err);
-      data = textData;
+      parsedData = JSON.parse(data.contents);
+    } catch (e) {
+      parsedData = data.contents;
     }
 
     let finalOutput;
-    if (typeof data === 'object') {
-      finalOutput = '```json\n' + JSON.stringify(data, null, 2) + '\n```';
+    if (typeof parsedData === 'object') {
+      finalOutput = '```json\n' + JSON.stringify(parsedData, null, 2) + '\n```';
     } else {
-      finalOutput = '```' + data + '```';
+      finalOutput = '```' + parsedData + '```';
     }
 
     finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`;
