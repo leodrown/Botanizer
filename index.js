@@ -8,7 +8,6 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-// Slash komutları tanımı
 const commands = [
   new SlashCommandBuilder()
     .setName('sorgu_adsoyad')
@@ -42,7 +41,6 @@ const commands = [
     .setDescription('Bot hakkında bilgi verir')
 ];
 
-// Slash komutları Discord’a gönderiliyor
 client.once('ready', async () => {
   console.log(`${client.user.tag} aktif ağa 🔥`);
   console.log('Hazırlayan: leo.drown 👨‍💻');
@@ -106,7 +104,8 @@ client.on('interactionCreate', async interaction => {
       }
     }
 
-    const proxyURL = `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`;
+    // allorigins proxy kullanımı
+    const proxyURL = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyURL);
     const data = await response.json();
 
@@ -118,7 +117,7 @@ client.on('interactionCreate', async interaction => {
       finalOutput = '```' + data.contents + '```';
     }
 
-    finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`; // ✨ İMZA burda
+    finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`;
 
     await interaction.editReply(finalOutput);
   } catch (err) {
@@ -127,7 +126,6 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Express sunucusu
 app.get('/', (req, res) => res.send('Bot çalışıyor 🟢'));
 app.listen(3000, () => console.log('Web sunucusu aktif'));
 
