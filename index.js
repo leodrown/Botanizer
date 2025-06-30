@@ -73,50 +73,48 @@ client.on('interactionCreate', async interaction => {
       `);
     }
 
-    let url;
+    let apiURL;
 
     switch (commandName) {
       case 'sorgu_adsoyad': {
         const ad = options.getString('ad');
         const soyad = options.getString('soyad');
         const il = options.getString('il') || '';
-        url = `https://api.hexnox.pro/sowixapi/adsoyadilce.php?ad=${ad}&soyad=${soyad}&il=${il}`;
+        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adsoyadilce.php?ad=${ad}&soyad=${soyad}&il=${il}`)}`;
         break;
       }
       case 'sorgu_adres': {
         const tc = options.getString('tc');
-        url = `https://api.hexnox.pro/sowixapi/adres.php?tc=${tc}`;
+        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adres.php?tc=${tc}`)}`;
         break;
       }
       case 'sorgu_sulale': {
         const tc = options.getString('tc');
-        url = `https://api.hexnox.pro/sowixapi/sulale.php?tc=${tc}`;
+        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/sulale.php?tc=${tc}`)}`;
         break;
       }
       case 'sorgu_gsmtotc': {
         const gsm = options.getString('gsm');
-        url = `https://api.hexnox.pro/sowixapi/gsm.php?gsm=${gsm}`;
+        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/gsm.php?gsm=${gsm}`)}`;
         break;
       }
       case 'sorgu_tctogsm': {
         const tc = options.getString('tc');
-        url = `https://api.hexnox.pro/sowixapi/tcgsm.php?tc=${tc}`;
+        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/tcgsm.php?tc=${tc}`)}`;
         break;
       }
       default:
         return await interaction.editReply('Bilinmeyen komut 🚨');
     }
 
-    const proxyURL = `https://coherent-pacific-raja.glitch.me/proxy?url=${encodeURIComponent(url)}`;
-    const response = await fetch(proxyURL);
-    const textData = await response.text();
+    const response = await fetch(apiURL);
+    const proxyData = await response.json();
 
     let data;
     try {
-      data = JSON.parse(textData);
-    } catch (err) {
-      console.error('JSON parse hatası:', err);
-      data = textData;
+      data = JSON.parse(proxyData.contents);
+    } catch {
+      data = proxyData.contents;
     }
 
     let finalOutput;
