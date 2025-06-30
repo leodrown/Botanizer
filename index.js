@@ -8,41 +8,41 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-// Slash komutu tanımı
+// Slash komut formu
 const sorgulaCommand = new SlashCommandBuilder()
   .setName('sorgula')
-  .setDescription('Ad, Soyad ve isteğe bağlı il ile sorgulama yapar.')
+  .setDescription('Ad, soyad ve isteğe bağlı il ile sorgulama yapar.')
   .addStringOption(option =>
     option.setName('ad')
-      .setDescription('Adı girin')
+      .setDescription('Adınızı girin')
       .setRequired(true))
   .addStringOption(option =>
     option.setName('soyad')
-      .setDescription('Soyadı girin')
+      .setDescription('Soyadınızı girin')
       .setRequired(true))
   .addStringOption(option =>
     option.setName('il')
       .setDescription('İl (isteğe bağlı)')
       .setRequired(false));
 
-// Komutları Discord’a kaydetme
 client.once('ready', async () => {
-  console.log(`${client.user.tag} hazır ağa!`);
+  console.log(`${client.user.tag} aktif ağa 🔥`);
 
+  // Slash komutu Discord’a tanıtılıyor
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
   try {
-    console.log('Slash komutları kaydediliyor...');
+    console.log('Komutlar kaydediliyor...');
     await rest.put(
       Routes.applicationCommands(client.user.id),
       { body: [sorgulaCommand.toJSON()] }
     );
-    console.log('Komutlar yüklendi!');
+    console.log('Slash komutu yüklendi 🔥');
   } catch (error) {
-    console.error('Komut kaydında hata:', error);
+    console.error('Slash komut hatası:', error);
   }
 });
 
-// Slash komut çalıştığında
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -53,7 +53,7 @@ client.on('interactionCreate', async interaction => {
 
     const apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adsoyadilice.php?ad=${ad}&soyad=${soyad}`)}`;
 
-    await interaction.deferReply(); // "Yükleniyor..." mesajı için
+    await interaction.deferReply();
 
     try {
       const response = await fetch(apiURL);
@@ -77,14 +77,14 @@ client.on('interactionCreate', async interaction => {
         await interaction.editReply('❌ Kayıt bulunamadı.');
       }
     } catch (err) {
-      console.error(err);
-      await interaction.editReply('🚨 API sorgusu başarısız.');
+      console.error('API hatası:', err);
+      await interaction.editReply('🚨 Bir hata oluştu, API cevap vermedi.');
     }
   }
 });
 
 // Express sunucusu
-app.get('/', (req, res) => res.send('Bot çalışıyor, uyumuyo 🔥'));
-app.listen(3000, () => console.log('Express sunucu açık'));
+app.get('/', (req, res) => res.send('Bot çalışıyor 🔥'));
+app.listen(3000, () => console.log('Web sunucusu ayakta'));
 
 client.login(process.env.DISCORD_TOKEN);
