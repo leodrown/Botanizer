@@ -8,93 +8,127 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-// Slash komut formu
-const sorgulaCommand = new SlashCommandBuilder()
-  .setName('sorgula')
-  .setDescription('Ad, soyad ve isteğe bağlı il ile sorgulama yapar.')
-  .addStringOption(option =>
-    option.setName('ad')
-      .setDescription('Adınızı girin')
-      .setRequired(true))
-  .addStringOption(option =>
-    option.setName('soyad')
-      .setDescription('Soyadınızı girin')
-      .setRequired(true))
-  .addStringOption(option =>
-    option.setName('il')
-      .setDescription('İl (isteğe bağlı)')
-      .setRequired(false));
+// Slash komutları tanımı
+const commands = [
+  new SlashCommandBuilder()
+    .setName('sorgu_adsoyad')
+    .setDescription('Ad Soyad İl ile sorgu')
+    .addStringOption(o => o.setName('ad').setDescription('Ad').setRequired(true))
+    .addStringOption(o => o.setName('soyad').setDescription('Soyad').setRequired(true))
+    .addStringOption(o => o.setName('il').setDescription('İl (isteğe bağlı)').setRequired(false)),
 
+  new SlashCommandBuilder()
+    .setName('sorgu_adres')
+    .setDescription('TC ile adres sorgula')
+    .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('sorgu_sulale')
+    .setDescription('TC ile sülale sorgula')
+    .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('sorgu_gsmtotc')
+    .setDescription('GSM ile TC sorgula')
+    .addStringOption(o => o.setName('gsm').setDescription('Telefon numarası (05...)').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('sorgu_tctogsm')
+    .setDescription('TC ile GSM sorgula')
+    .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('hakkinda')
+    .setDescription('Bot hakkında bilgi verir')
+];
+
+// Slash komutları Discord’a gönderiliyor
 client.once('ready', async () => {
   console.log(`${client.user.tag} aktif ağa 🔥`);
+  console.log('Hazırlayan: leo.drown 👨‍💻');
 
-  // Slash komutu Discord’a tanıtılıyor
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-
   try {
-    console.log('Komutlar kaydediliyor...');
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: [sorgulaCommand.toJSON()] }
-    );
-    console.log('Slash komutu yüklendi 🔥');
-  } catch (error) {
-    console.error('Slash komut hatası:', error);
+    await rest.put(Routes.applicationCommands(client.user.id), {
+      body: commands.map(cmd => cmd.toJSON())
+    });
+    console.log('Komutlar başarıyla yüklendi ✅');
+  } catch (err) {
+    console.error('Komut yükleme hatası:', err);
   }
 });
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
+  await interaction.deferReply();
 
-  if (interaction.commandName === 'sorgula') {
-    const ad = interaction.options.getString('ad');
-    const soyad = interaction.options.getString('soyad');
-    const il = interaction.options.getString('il') || 'Bilinmiyor';
+  const { commandName, options } = interaction;
 
-    // Güncel proxy servisi: thingproxy
-    const apiURL = `https://thingproxy.freeboard.io/fetch/https://api.hexnox.pro/sowixapi/adsoyadilice.php?ad=${ad}&soyad=${soyad}`;
+  try {
+    let url;
 
-    await interaction.deferReply();
-
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10 saniye timeout
-
-      const response = await fetch(apiURL, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      const data = await response.json();
-      const json = JSON.parse(data.contents);
-
-      if (json.success && json.data.length > 0) {
-        const kisi = json.data[0];
-        await interaction.editReply(`
-**TC:** ${kisi.TC}
-**Ad:** ${kisi.AD}
-**Soyad:** ${kisi.SOYAD}
-**Doğum:** ${kisi.DOGUMTARIHI}
-**Anne:** ${kisi.ANNEADI} - ${kisi.ANNETC}
-**Baba:** ${kisi.BABAADI} - ${kisi.BABATC}
-**İl:** ${kisi.MEMLEKETIL || il}
-**İlçe:** ${kisi.MEMLEKETILCE}
-🇹🇷
-        `);
-      } else {
-        await interaction.editReply('❌ Kayıt bulunamadı.');
+    switch (commandName) {
+      case 'sorgu_adsoyad': {
+        const ad = options.getString('ad');
+        const soyad = options.getString('soyad');
+        const il = options.getString('il') || '';
+        url = `https://api.hexnox.pro/sowixapi/adsoyadilce.php?ad=${ad}&soyad=${soyad}&il=${il}`;
+        break;
       }
-    } catch (err) {
-      console.error('API hatası:', err);
-      try {
-        await interaction.editReply('🚨 Bir hata oluştu, API cevap vermedi.');
-      } catch (editErr) {
-        console.error('editReply hatası:', editErr);
+      case 'sorgu_adres': {
+        const tc = options.getString('tc');
+        url = `https://api.hexnox.pro/sowixapi/adres.php?tc=${tc}`;
+        break;
+      }
+      case 'sorgu_sulale': {
+        const tc = options.getString('tc');
+        url = `https://api.hexnox.pro/sowixapi/sulale.php?tc=${tc}`;
+        break;
+      }
+      case 'sorgu_gsmtotc': {
+        const gsm = options.getString('gsm');
+        url = `https://api.hexnox.pro/sowixapi/gsm.php?gsm=${gsm}`;
+        break;
+      }
+      case 'sorgu_tctogsm': {
+        const tc = options.getString('tc');
+        url = `https://api.hexnox.pro/sowixapi/tcgsm.php?tc=${tc}`;
+        break;
+      }
+      case 'hakkinda': {
+        return await interaction.editReply(`
+🤖 **Sowix Sorgu Botu**
+🔌 Proxy destekli, çoklu API ile çalışır
+👨‍💻 Hazırlayan: **leo.drown**
+🛠️ Güçlüdür, sessizdir, işini yapar.
+🇹🇷 Adana onaylıdır.
+        `);
       }
     }
+
+    const proxyURL = `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`;
+    const response = await fetch(proxyURL);
+    const data = await response.json();
+
+    let finalOutput;
+    try {
+      const parsed = JSON.parse(data.contents);
+      finalOutput = '```json\n' + JSON.stringify(parsed, null, 2) + '\n```';
+    } catch (e) {
+      finalOutput = '```' + data.contents + '```';
+    }
+
+    finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`; // ✨ İMZA burda
+
+    await interaction.editReply(finalOutput);
+  } catch (err) {
+    console.error('Sorgu hatası:', err);
+    await interaction.editReply('🚫 Bir hata oluştu, API ulaşamadı.');
   }
 });
 
 // Express sunucusu
-app.get('/', (req, res) => res.send('Bot çalışıyor 🔥'));
-app.listen(3000, () => console.log('Web sunucusu ayakta'));
+app.get('/', (req, res) => res.send('Bot çalışıyor 🟢'));
+app.listen(3000, () => console.log('Web sunucusu aktif'));
 
 client.login(process.env.DISCORD_TOKEN);
