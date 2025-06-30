@@ -109,12 +109,20 @@ client.on('interactionCreate', async interaction => {
 
     const proxyURL = `https://bb4757b0-d804-47d1-9ee7-d6fac476c4d0-00-2ldtcj7sqhydj.picard.replit.dev/proxy?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyURL);
-    const data = await response.json();
+    const textData = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(textData);
+    } catch (err) {
+      console.error('JSON parse hatası:', err);
+      data = textData;
+    }
 
     let finalOutput;
-    try {
+    if (typeof data === 'object') {
       finalOutput = '```json\n' + JSON.stringify(data, null, 2) + '\n```';
-    } catch (e) {
+    } else {
       finalOutput = '```' + data + '```';
     }
 
