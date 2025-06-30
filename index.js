@@ -41,6 +41,8 @@ const commands = [
     .setDescription('Bot hakkında bilgi verir')
 ];
 
+const cooldowns = new Map();
+
 client.once('ready', async () => {
   console.log(`${client.user.tag} aktif ağa 🔥`);
   console.log('Hazırlayan: leo.drown 👨‍💻');
@@ -58,6 +60,22 @@ client.once('ready', async () => {
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
+
+  const userId = interaction.user.id;
+  const now = Date.now();
+  const cooldownAmount = 10000; // 10 saniye
+
+  if (cooldowns.has(userId)) {
+    const expirationTime = cooldowns.get(userId) + cooldownAmount;
+
+    if (now < expirationTime) {
+      const timeLeft = ((expirationTime - now) / 1000).toFixed(1);
+      return interaction.reply({ content: `⏳ Biraz bekle, ${timeLeft} saniye kaldı!`, ephemeral: true });
+    }
+  }
+
+  cooldowns.set(userId, now);
+
   await interaction.deferReply();
 
   const { commandName, options } = interaction;
@@ -107,29 +125,86 @@ client.on('interactionCreate', async interaction => {
         return await interaction.editReply('Bilinmeyen komut 🚨');
     }
 
-    // AllOrigins proxy kullanımı
-    const proxyURL = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const proxyURL = `https://bb4757b0-d804-47d1-9ee7-d6fac476c4d0-00-2ldtcj7sqhydj.picard.replit.dev/proxy?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyURL);
-    const data = await response.json();
+    const textData = await response.text();
 
-    // API cevabı AllOrigins formatında, içerik data.contents içinde
-    let parsedData;
+    let data;
     try {
-      parsedData = JSON.parse(data.contents);
-    } catch (e) {
-      parsedData = data.contents;
+      data = JSON.parse(textData);
+    } catch (err) {
+      console.error('JSON parse hatası:', err);
+      data = null;
     }
 
-    let finalOutput;
-    if (typeof parsedData === 'object') {
-      finalOutput = '```json\n' + JSON.stringify(parsedData, null, 2) + '\n```';
+    if (!data) {
+      return await interaction.editReply('🚫 API’den geçerli veri alınamadı.');
+    }
+
+    // Burada her API endpoint için veriyi farklı işle (örnekleri ekliyorum)
+    let message = '';
+
+    if (commandName === 'sorgu_adsoyad') {
+      if (data.success && data.data && data.data.length > 0) {
+        const kisi = data.data[0];
+        message = `
+**TC:** ${kisi.TC || 'Bilinmiyor'}
+**Ad:** ${kisi.AD || 'Bilinmiyor'}
+**Soyad:** ${kisi.SOYAD || 'Bilinmiyor'}
+**Doğum:** ${kisi.DOGUMTARIHI || 'Bilinmiyor'}
+**Anne:** ${kisi.ANNEADI || 'Bilinmiyor'} - ${kisi.ANNETC || 'Bilinmiyor'}
+**Baba:** ${kisi.BABAADI || 'Bilinmiyor'} - ${kisi.BABATC || 'Bilinmiyor'}
+**İl:** ${kisi.MEMLEKETIL || 'Bilinmiyor'}
+**İlçe:** ${kisi.MEMLEKETILCE || 'Bilinmiyor'}
+        `;
+      } else {
+        message = '❌ Kayıt bulunamadı.';
+      }
+    } else if (commandName === 'sorgu_adres') {
+      if (data.success && data.data) {
+        const adres = data.data;
+        message = `
+**Adres:** ${adres.ADRES || 'Bilinmiyor'}
+**İl:** ${adres.IL || 'Bilinmiyor'}
+**İlçe:** ${adres.ILCE || 'Bilinmiyor'}
+        `;
+      } else {
+        message = '❌ Kayıt bulunamadı.';
+      }
+    } else if (commandName === 'sorgu_sulale') {
+      if (data.success && data.data && data.data.length > 0) {
+        message = '**Sülale Bilgileri:**\n';
+        data.data.forEach((item, idx) => {
+          message += `${idx + 1}. ${item.AD || 'Bilinmiyor'} - ${item.SOYAD || 'Bilinmiyor'}\n`;
+        });
+      } else {
+        message = '❌ Kayıt bulunamadı.';
+      }
+    } else if (commandName === 'sorgu_gsmtotc') {
+      if (data.success && data.data) {
+        message = `
+**GSM:** ${data.data.GSM || 'Bilinmiyor'}
+**TC:** ${data.data.TC || 'Bilinmiyor'}
+        `;
+      } else {
+        message = '❌ Kayıt bulunamadı.';
+      }
+    } else if (commandName === 'sorgu_tctogsm') {
+      if (data.success && data.data) {
+        message = `
+**TC:** ${data.data.TC || 'Bilinmiyor'}
+**GSM:** ${data.data.GSM || 'Bilinmiyor'}
+        `;
+      } else {
+        message = '❌ Kayıt bulunamadı.';
+      }
     } else {
-      finalOutput = '```' + parsedData + '```';
+      message = '🚫 Bilinmeyen komut.';
     }
 
-    finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`;
+    message += `\n\n👨‍💻 hazırlayan: **leo.drown**`;
 
-    await interaction.editReply(finalOutput);
+    await interaction.editReply(message);
   } catch (err) {
     console.error('Sorgu hatası:', err);
     await interaction.editReply('🚫 Bir hata oluştu, API ulaşamadı.');
