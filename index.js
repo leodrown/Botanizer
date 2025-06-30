@@ -1,52 +1,90 @@
-// Express ve Discord.js modülleri
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
+require('dotenv').config();
+const fetch = require('node-fetch');
 const express = require('express');
 const app = express();
 
-const { Client, GatewayIntentBits } = require('discord.js');
-require('dotenv').config(); // .env dosyasını kullanmak için
-
-// Bot istemcisi
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+  intents: [GatewayIntentBits.Guilds]
 });
 
-// Bot aktif olduğunda
-client.once('ready', () => {
-  console.log(`${client.user.tag} çalışıyor AĞAAA!`);
+// Slash komutu tanımı
+const sorgulaCommand = new SlashCommandBuilder()
+  .setName('sorgula')
+  .setDescription('Ad, Soyad ve isteğe bağlı il ile sorgulama yapar.')
+  .addStringOption(option =>
+    option.setName('ad')
+      .setDescription('Adı girin')
+      .setRequired(true))
+  .addStringOption(option =>
+    option.setName('soyad')
+      .setDescription('Soyadı girin')
+      .setRequired(true))
+  .addStringOption(option =>
+    option.setName('il')
+      .setDescription('İl (isteğe bağlı)')
+      .setRequired(false));
+
+// Komutları Discord’a kaydetme
+client.once('ready', async () => {
+  console.log(`${client.user.tag} hazır ağa!`);
+
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  try {
+    console.log('Slash komutları kaydediliyor...');
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: [sorgulaCommand.toJSON()] }
+    );
+    console.log('Komutlar yüklendi!');
+  } catch (error) {
+    console.error('Komut kaydında hata:', error);
+  }
 });
 
-// Komutlar
-client.on('messageCreate', message => {
-  if (message.author.bot) return;
+// Slash komut çalıştığında
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
 
-  const msg = message.content.toLowerCase();
+  if (interaction.commandName === 'sorgula') {
+    const ad = interaction.options.getString('ad');
+    const soyad = interaction.options.getString('soyad');
+    const il = interaction.options.getString('il') || 'Bilinmiyor';
 
-  if (msg === '!ping') {
-    message.reply('Pong! 🏓');
-  }
+    const apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adsoyadilice.php?ad=${ad}&soyad=${soyad}`)}`;
 
-  if (msg === '!selam') {
-    message.reply('Aleyküm selam ağa! 🤝');
-  }
+    await interaction.deferReply(); // "Yükleniyor..." mesajı için
 
-  if (msg === '!adana') {
-    message.channel.send('🔥 Adana sıcağı bile bu bot kadar aktif değil!');
-  }
+    try {
+      const response = await fetch(apiURL);
+      const data = await response.json();
+      const json = JSON.parse(data.contents);
 
-  if (msg === '!yardım') {
-    message.channel.send(`
-**Komutlar**
-> !ping - Bot çalışıyor mu bakarsın  
-> !selam - Selam ver  
-> !adana - Adana havası  
-> !yardım - Yardım listesi
-    `);
+      if (json.success && json.data.length > 0) {
+        const kisi = json.data[0];
+        await interaction.editReply(`
+**TC:** ${kisi.TC}
+**Ad:** ${kisi.AD}
+**Soyad:** ${kisi.SOYAD}
+**Doğum:** ${kisi.DOGUMTARIHI}
+**Anne:** ${kisi.ANNEADI} - ${kisi.ANNETC}
+**Baba:** ${kisi.BABAADI} - ${kisi.BABATC}
+**İl:** ${kisi.MEMLEKETIL || il}
+**İlçe:** ${kisi.MEMLEKETILCE}
+🇹🇷
+        `);
+      } else {
+        await interaction.editReply('❌ Kayıt bulunamadı.');
+      }
+    } catch (err) {
+      console.error(err);
+      await interaction.editReply('🚨 API sorgusu başarısız.');
+    }
   }
 });
 
-// Discord token ile giriş
+// Express sunucusu
+app.get('/', (req, res) => res.send('Bot çalışıyor, uyumuyo 🔥'));
+app.listen(3000, () => console.log('Express sunucu açık'));
+
 client.login(process.env.DISCORD_TOKEN);
-
-// Express sunucusu (UptimeRobot için)
-app.get('/', (req, res) => res.send('Bot aktif, uyku haram! 🔥'));
-app.listen(3000, () => console.log('Express sunucusu çalışıyor! ✅'));
