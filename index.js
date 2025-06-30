@@ -51,12 +51,18 @@ client.on('interactionCreate', async interaction => {
     const soyad = interaction.options.getString('soyad');
     const il = interaction.options.getString('il') || 'Bilinmiyor';
 
-    const apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adsoyadilice.php?ad=${ad}&soyad=${soyad}`)}`;
+    // Güncel proxy servisi: thingproxy
+    const apiURL = `https://thingproxy.freeboard.io/fetch/https://api.hexnox.pro/sowixapi/adsoyadilice.php?ad=${ad}&soyad=${soyad}`;
 
     await interaction.deferReply();
 
     try {
-      const response = await fetch(apiURL);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10 saniye timeout
+
+      const response = await fetch(apiURL, { signal: controller.signal });
+      clearTimeout(timeout);
+
       const data = await response.json();
       const json = JSON.parse(data.contents);
 
@@ -78,7 +84,11 @@ client.on('interactionCreate', async interaction => {
       }
     } catch (err) {
       console.error('API hatası:', err);
-      await interaction.editReply('🚨 Bir hata oluştu, API cevap vermedi.');
+      try {
+        await interaction.editReply('🚨 Bir hata oluştu, API cevap vermedi.');
+      } catch (editErr) {
+        console.error('editReply hatası:', editErr);
+      }
     }
   }
 });
