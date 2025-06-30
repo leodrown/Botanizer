@@ -107,8 +107,7 @@ client.on('interactionCreate', async interaction => {
         return await interaction.editReply('Bilinmeyen komut 🚨');
     }
 
-    // corsproxy.io proxy kullanımı
-    const proxyURL = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const proxyURL = `https://bb4757b0-d804-47d1-9ee7-d6fac476c4d0-00-2ldtcj7sqhydj.picard.replit.dev/proxy?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyURL);
     const data = await response.json();
 
