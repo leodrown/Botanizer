@@ -41,21 +41,6 @@ const commands = [
     .setDescription('Bot hakkında bilgi verir')
 ];
 
-client.once('ready', async () => {
-  console.log(`${client.user.tag} aktif ağa 🔥`);
-  console.log('Hazırlayan: leo.drown 👨‍💻');
-
-  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-  try {
-    await rest.put(Routes.applicationCommands(client.user.id), {
-      body: commands.map(cmd => cmd.toJSON())
-    });
-    console.log('Komutlar başarıyla yüklendi ✅');
-  } catch (err) {
-    console.error('Komut yükleme hatası:', err);
-  }
-});
-
 const fieldNames = {
   AD: 'Ad',
   SOYAD: 'Soyad',
@@ -79,6 +64,21 @@ const fieldNames = {
   CINSIYET: 'Cinsiyet',
 };
 
+client.once('ready', async () => {
+  console.log(`${client.user.tag} aktif ağa 🔥`);
+  console.log('Hazırlayan: leo.drown 👨‍💻');
+
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  try {
+    await rest.put(Routes.applicationCommands(client.user.id), {
+      body: commands.map(cmd => cmd.toJSON())
+    });
+    console.log('Komutlar başarıyla yüklendi ✅');
+  } catch (err) {
+    console.error('Komut yükleme hatası:', err);
+  }
+});
+
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -100,33 +100,30 @@ client.on('interactionCreate', async interaction => {
 
     switch (commandName) {
       case 'sorgu_adsoyad': {
-        // Bu komut sağlam zaten, aynen bırakıyorum.
         const ad = options.getString('ad');
         const soyad = options.getString('soyad');
         const il = options.getString('il') || '';
-        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adsoyadilce.php?ad=${ad}&soyad=${soyad}&il=${il}`)}`;
+        apiURL = `https://api.hexnox.pro/sowixapi/adsoyadilce.php?ad=${encodeURIComponent(ad)}&soyad=${encodeURIComponent(soyad)}&il=${encodeURIComponent(il)}`;
         break;
       }
       case 'sorgu_adres': {
         const tc = options.getString('tc');
-        // API parametresi "tc" doğru mu, ona dikkat. Genelde doğru.
-        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adres.php?tc=${tc}`)}`;
+        apiURL = `https://api.hexnox.pro/sowixapi/adres.php?tc=${encodeURIComponent(tc)}`;
         break;
       }
       case 'sorgu_sulale': {
         const tc = options.getString('tc');
-        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/sulale.php?tc=${tc}`)}`;
+        apiURL = `https://api.hexnox.pro/sowixapi/sulale.php?tc=${encodeURIComponent(tc)}`;
         break;
       }
       case 'sorgu_gsmtotc': {
         const gsm = options.getString('gsm');
-        // API’de parametre adı farklı olabilir, denediğim kadarıyla "gsm" doğru.
-        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/gsm.php?gsm=${gsm}`)}`;
+        apiURL = `https://api.hexnox.pro/sowixapi/gsm.php?gsm=${encodeURIComponent(gsm)}`;
         break;
       }
       case 'sorgu_tctogsm': {
         const tc = options.getString('tc');
-        apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/tcgsm.php?tc=${tc}`)}`;
+        apiURL = `https://api.hexnox.pro/sowixapi/tcgsm.php?tc=${encodeURIComponent(tc)}`;
         break;
       }
       default:
@@ -134,17 +131,8 @@ client.on('interactionCreate', async interaction => {
     }
 
     const response = await fetch(apiURL);
-    const proxyData = await response.json();
-
-    let data;
-    try {
-      data = JSON.parse(proxyData.contents);
-      if (typeof data === 'string') {
-        data = JSON.parse(data);
-      }
-    } catch {
-      data = proxyData.contents;
-    }
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    const data = await response.json();
 
     let finalOutput = '';
 
