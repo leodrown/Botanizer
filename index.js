@@ -89,8 +89,9 @@ client.on('interactionCreate', async interaction => {
     if (commandName === 'hakkinda') {
       return await interaction.editReply(`
 🤖 ***Botanizer Sorgu Botu***
-🔌 Proxy desteklidir!
+🔌 Prefix: Slash /
 👨‍💻 Hazırlayan: **leo.drown**
+https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw%3D%3D
 🛠️ Güçlüdür, sessizdir, işini yapar.
 🇹🇷 Adana onaylıdır.
       `);
