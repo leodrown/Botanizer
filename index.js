@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
 require('dotenv').config();
 const fetch = require('node-fetch');
 const express = require('express');
@@ -15,22 +15,27 @@ const commands = [
     .addStringOption(o => o.setName('ad').setDescription('Ad').setRequired(true))
     .addStringOption(o => o.setName('soyad').setDescription('Soyad').setRequired(true))
     .addStringOption(o => o.setName('il').setDescription('İl (isteğe bağlı)').setRequired(false)),
+
   new SlashCommandBuilder()
     .setName('sorgu_adres')
     .setDescription('TC ile adres sorgula')
     .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
+
   new SlashCommandBuilder()
     .setName('sorgu_sulale')
     .setDescription('TC ile sülale sorgula')
     .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
+
   new SlashCommandBuilder()
     .setName('sorgu_gsmtotc')
     .setDescription('GSM ile TC sorgula')
     .addStringOption(o => o.setName('gsm').setDescription('Telefon numarası (05...)').setRequired(true)),
+
   new SlashCommandBuilder()
     .setName('sorgu_tctogsm')
     .setDescription('TC ile GSM sorgula')
     .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
+
   new SlashCommandBuilder()
     .setName('hakkinda')
     .setDescription('Bot hakkında bilgi verir')
@@ -59,14 +64,11 @@ const fieldNames = {
   CINSIYET: 'Cinsiyet',
 };
 
+const MAX_MESSAGE_LENGTH = 1900;
+
 client.once('ready', async () => {
   console.log(`${client.user.tag} aktif ağa 🔥`);
   console.log('Hazırlayan: leo.drown 👨‍💻');
-
-  client.user.setPresence({
-    activities: [{ name: 'sorguları', type: ActivityType.Watching }],
-    status: 'online',
-  });
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try {
@@ -74,6 +76,9 @@ client.once('ready', async () => {
       body: commands.map(cmd => cmd.toJSON())
     });
     console.log('Komutlar başarıyla yüklendi ✅');
+
+    // Aktivite (oynuyor/izliyor) ayarla
+    client.user.setActivity('7/24 aktif dinliyor', { type: 'WATCHING' });
   } catch (err) {
     console.error('Komut yükleme hatası:', err);
   }
@@ -90,9 +95,9 @@ client.on('interactionCreate', async interaction => {
       return await interaction.editReply(`
 🤖 ***Botanizer Sorgu Botu***
 🔌 Prefix: Slash /
-👨‍💻 Hazırlayan: **leo.drown**  
-https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw==  
-🛠️ Güçlüdür, sessizdir, işini yapar.  
+👨‍💻 Hazırlayan: **leo.drown**
+https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw==
+🛠️ Güçlüdür, sessizdir, işini yapar.
 🇹🇷 Adana onaylıdır.
       `);
     }
@@ -135,41 +140,43 @@ https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw==
     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
     const data = await response.json();
 
-    if (typeof data !== 'object' || !Array.isArray(data.data) || data.data.length === 0) {
+    if (!(typeof data === 'object' && Array.isArray(data.data) && data.data.length > 0)) {
       return await interaction.editReply('📄 Hiçbir kayıt bulunamadı.');
     }
 
-    const messages = [];
+    // Çoklu kayıtları parça parça gönderme
+    let outputChunks = [];
     let currentChunk = '';
 
     data.data.forEach((item, index) => {
-      let chunk = `📦 **Kayıt ${index + 1}**\n`;
+      let itemText = `📦 **Kayıt ${index + 1}**\n`;
       for (const [key, value] of Object.entries(item)) {
         if (value && value !== 'YOK' && value !== 'Bilinmiyor') {
           const niceKey = fieldNames[key] || key;
-          chunk += `**${niceKey}**: ${value}\n`;
+          itemText += `**${niceKey}**: ${value}\n`;
         }
       }
-      chunk += '\n';
+      itemText += '\n';
 
-      if ((currentChunk + chunk).length > 2000) {
-        messages.push(currentChunk);
-        currentChunk = '';
+      if ((currentChunk + itemText).length > MAX_MESSAGE_LENGTH) {
+        outputChunks.push(currentChunk);
+        currentChunk = itemText;
+      } else {
+        currentChunk += itemText;
       }
-      currentChunk += chunk;
     });
 
-    if (currentChunk.length > 0) messages.push(currentChunk);
+    if (currentChunk) outputChunks.push(currentChunk);
 
-    for (let i = 0; i < messages.length; i++) {
+    // Parçaları sırayla gönder
+    for (let i = 0; i < outputChunks.length; i++) {
       if (i === 0) {
-        await interaction.editReply(messages[i]);
+        await interaction.editReply(outputChunks[i] + `👨‍💻 Hazırlayan: **leo.drown**`);
       } else {
-        await interaction.followUp(messages[i]);
+        await interaction.followUp(outputChunks[i]);
       }
     }
 
-    await interaction.followUp(`👨‍💻 Hazırlayan: **leo.drown**`);
   } catch (err) {
     console.error('Sorgu hatası:', err);
     await interaction.editReply('🚫 Bir hata oluştu, kişi bulunamadı!');
