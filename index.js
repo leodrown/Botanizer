@@ -56,6 +56,29 @@ client.once('ready', async () => {
   }
 });
 
+const fieldNames = {
+  AD: 'Ad',
+  SOYAD: 'Soyad',
+  TC: 'TC Kimlik No',
+  GSM: 'GSM',
+  BABAADI: 'Baba Adı',
+  BABATC: 'Baba TC',
+  ANNEADI: 'Anne Adı',
+  ANNETC: 'Anne TC',
+  DOGUMTARIHI: 'Doğum Tarihi',
+  OLUMTARIHI: 'Ölüm Tarihi',
+  DOGUMYERI: 'Doğum Yeri',
+  MEMLEKETIL: 'Memleket İl',
+  MEMLEKETILCE: 'Memleket İlçe',
+  MEMLEKETKOY: 'Memleket Köy',
+  ADRESIL: 'Adres İl',
+  ADRESILCE: 'Adres İlçe',
+  AILESIRANO: 'Aile Sıra No',
+  BIREYSIRANO: 'Birey Sıra No',
+  MEDENIHAL: 'Medeni Hal',
+  CINSIYET: 'Cinsiyet',
+};
+
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -123,17 +146,25 @@ client.on('interactionCreate', async interaction => {
       data = proxyData.contents;
     }
 
-    let finalOutput;
-if (typeof data === 'object' && Array.isArray(data.data) && data.data.length > 0) {
-  const item = data.data[0]; // sadece ilk kayıt
-  const lines = Object.entries(item).map(([key, value]) => `**${key}**: ${value}`);
-  finalOutput = lines.join('\n');
-} else {
-  finalOutput = '📄 Hiçbir kayıt bulunamadı.';
-}
+    let finalOutput = '';
 
-finalOutput += `\n\n👨‍💻 Hazırlayan: **leo.drown**`;
-    
+    if (typeof data === 'object' && Array.isArray(data.data) && data.data.length > 0) {
+      data.data.forEach((item, index) => {
+        finalOutput += `📦 **Kayıt ${index + 1}**\n`;
+        for (const [key, value] of Object.entries(item)) {
+          if (value && value !== 'YOK' && value !== 'Bilinmiyor') {
+            const niceKey = fieldNames[key] || key;
+            finalOutput += `**${niceKey}**: ${value}\n`;
+          }
+        }
+        finalOutput += '\n';
+      });
+    } else {
+      finalOutput = '📄 Hiçbir kayıt bulunamadı.';
+    }
+
+    finalOutput += `👨‍💻 Hazırlayan: **leo.drown**`;
+
     await interaction.editReply(finalOutput);
   } catch (err) {
     console.error('Sorgu hatası:', err);
