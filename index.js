@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActivityType } = require('discord.js');
 require('dotenv').config();
 const fetch = require('node-fetch');
 const express = require('express');
@@ -15,27 +15,22 @@ const commands = [
     .addStringOption(o => o.setName('ad').setDescription('Ad').setRequired(true))
     .addStringOption(o => o.setName('soyad').setDescription('Soyad').setRequired(true))
     .addStringOption(o => o.setName('il').setDescription('İl (isteğe bağlı)').setRequired(false)),
-
   new SlashCommandBuilder()
     .setName('sorgu_adres')
     .setDescription('TC ile adres sorgula')
     .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
-
   new SlashCommandBuilder()
     .setName('sorgu_sulale')
     .setDescription('TC ile sülale sorgula')
     .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
-
   new SlashCommandBuilder()
     .setName('sorgu_gsmtotc')
     .setDescription('GSM ile TC sorgula')
     .addStringOption(o => o.setName('gsm').setDescription('Telefon numarası (05...)').setRequired(true)),
-
   new SlashCommandBuilder()
     .setName('sorgu_tctogsm')
     .setDescription('TC ile GSM sorgula')
     .addStringOption(o => o.setName('tc').setDescription('TC Kimlik No').setRequired(true)),
-
   new SlashCommandBuilder()
     .setName('hakkinda')
     .setDescription('Bot hakkında bilgi verir')
@@ -68,6 +63,11 @@ client.once('ready', async () => {
   console.log(`${client.user.tag} aktif ağa 🔥`);
   console.log('Hazırlayan: leo.drown 👨‍💻');
 
+  client.user.setPresence({
+    activities: [{ name: 'sorguları', type: ActivityType.Watching }],
+    status: 'online',
+  });
+
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try {
     await rest.put(Routes.applicationCommands(client.user.id), {
@@ -90,9 +90,9 @@ client.on('interactionCreate', async interaction => {
       return await interaction.editReply(`
 🤖 ***Botanizer Sorgu Botu***
 🔌 Prefix: Slash /
-👨‍💻 Hazırlayan: **leo.drown**
-https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw==
-🛠️ Güçlüdür, sessizdir, işini yapar.
+👨‍💻 Hazırlayan: **leo.drown**  
+https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw==  
+🛠️ Güçlüdür, sessizdir, işini yapar.  
 🇹🇷 Adana onaylıdır.
       `);
     }
@@ -135,44 +135,41 @@ https://www.instagram.com/leo.drown?igsh=MXZ4NWU1dzMxYXlwYw==
     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
     const data = await response.json();
 
-    let finalOutput = '';
-
-    if (typeof data === 'object') {
-      const mainData = data.data ?? data;
-      const outputLines = [];
-
-      if (Array.isArray(mainData) && mainData.length > 0) {
-        mainData.forEach((item, idx) => {
-          outputLines.push(`📦 **Kayıt ${idx + 1}**`);
-          for (const [k, v] of Object.entries(item)) {
-            if (v && v !== 'YOK' && v !== 'Bilinmiyor') {
-              const nice = fieldNames[k] || k;
-              outputLines.push(`**${nice}**: ${v}`);
-            }
-          }
-          outputLines.push('\n');
-        });
-      } else if (typeof mainData === 'object' && Object.keys(mainData).length) {
-        outputLines.push('📦 **Kayıt 1**');
-        for (const [k, v] of Object.entries(mainData)) {
-          if (v && v !== 'YOK' && v !== 'Bilinmiyor') {
-            const nice = fieldNames[k] || k;
-            outputLines.push(`**${nice}**: ${v}`);
-          }
-        }
-        outputLines.push('\n');
-      }
-
-      finalOutput = outputLines.length
-        ? outputLines.join('\n')
-        : '📄 Hiçbir kayıt bulunamadı.';
-    } else {
-      finalOutput = '📄 Hiçbir kayıt bulunamadı.';
+    if (typeof data !== 'object' || !Array.isArray(data.data) || data.data.length === 0) {
+      return await interaction.editReply('📄 Hiçbir kayıt bulunamadı.');
     }
 
-    finalOutput += `\n👨‍💻 Hazırlayan: **leo.drown**`;
+    const messages = [];
+    let currentChunk = '';
 
-    await interaction.editReply(finalOutput);
+    data.data.forEach((item, index) => {
+      let chunk = `📦 **Kayıt ${index + 1}**\n`;
+      for (const [key, value] of Object.entries(item)) {
+        if (value && value !== 'YOK' && value !== 'Bilinmiyor') {
+          const niceKey = fieldNames[key] || key;
+          chunk += `**${niceKey}**: ${value}\n`;
+        }
+      }
+      chunk += '\n';
+
+      if ((currentChunk + chunk).length > 2000) {
+        messages.push(currentChunk);
+        currentChunk = '';
+      }
+      currentChunk += chunk;
+    });
+
+    if (currentChunk.length > 0) messages.push(currentChunk);
+
+    for (let i = 0; i < messages.length; i++) {
+      if (i === 0) {
+        await interaction.editReply(messages[i]);
+      } else {
+        await interaction.followUp(messages[i]);
+      }
+    }
+
+    await interaction.followUp(`👨‍💻 Hazırlayan: **leo.drown**`);
   } catch (err) {
     console.error('Sorgu hatası:', err);
     await interaction.editReply('🚫 Bir hata oluştu, kişi bulunamadı!');
