@@ -113,18 +113,24 @@ client.on('interactionCreate', async interaction => {
     let data;
     try {
       data = JSON.parse(proxyData.contents);
+
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch {}
+      }
     } catch {
       data = proxyData.contents;
     }
 
     let finalOutput;
     if (typeof data === 'object') {
-      finalOutput = '```json\n' + JSON.stringify(data, null, 2) + '\n```';
+      finalOutput = `📄 **Sorgu Sonucu:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
     } else {
-      finalOutput = '```' + data + '```';
+      finalOutput = `📄 **Sorgu Sonucu:**\n\`\`\`\n${data}\n\`\`\``;
     }
 
-    finalOutput += `\n👨‍💻 hazırlayan: **leo.drown**`;
+    finalOutput += `\n👨‍💻 Hazırlayan: **leo.drown**`;
 
     await interaction.editReply(finalOutput);
   } catch (err) {
