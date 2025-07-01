@@ -65,8 +65,8 @@ client.on('interactionCreate', async interaction => {
   try {
     if (commandName === 'hakkinda') {
       return await interaction.editReply(`
-🤖 **Sowix Sorgu Botu**
-🔌 Proxy destekli, çoklu API ile çalışır
+🤖 ***Botanizer Sorgu Botu***
+🔌 Proxy desteklidir!
 👨‍💻 Hazırlayan: **leo.drown**
 🛠️ Güçlüdür, sessizdir, işini yapar.
 🇹🇷 Adana onaylıdır.
@@ -124,18 +124,20 @@ client.on('interactionCreate', async interaction => {
     }
 
     let finalOutput;
-    if (typeof data === 'object') {
-      finalOutput = `📄 **Sorgu Sonucu:**\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
-    } else {
-      finalOutput = `📄 **Sorgu Sonucu:**\n\`\`\`\n${data}\n\`\`\``;
-    }
+if (typeof data === 'object' && Array.isArray(data.data) && data.data.length > 0) {
+  const item = data.data[0]; // sadece ilk kayıt
+  const lines = Object.entries(item).map(([key, value]) => `**${key}**: ${value}`);
+  finalOutput = lines.join('\n');
+} else {
+  finalOutput = '📄 Hiçbir kayıt bulunamadı.';
+}
 
-    finalOutput += `\n👨‍💻 Hazırlayan: **leo.drown**`;
-
+finalOutput += `\n\n👨‍💻 Hazırlayan: **leo.drown**`;
+    
     await interaction.editReply(finalOutput);
   } catch (err) {
     console.error('Sorgu hatası:', err);
-    await interaction.editReply('🚫 Bir hata oluştu, API ulaşamadı.');
+    await interaction.editReply('🚫 Bir hata oluştu, kişi bulunamadı!');
   }
 });
 
