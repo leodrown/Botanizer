@@ -100,6 +100,7 @@ client.on('interactionCreate', async interaction => {
 
     switch (commandName) {
       case 'sorgu_adsoyad': {
+        // Bu komut sağlam zaten, aynen bırakıyorum.
         const ad = options.getString('ad');
         const soyad = options.getString('soyad');
         const il = options.getString('il') || '';
@@ -108,6 +109,7 @@ client.on('interactionCreate', async interaction => {
       }
       case 'sorgu_adres': {
         const tc = options.getString('tc');
+        // API parametresi "tc" doğru mu, ona dikkat. Genelde doğru.
         apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/adres.php?tc=${tc}`)}`;
         break;
       }
@@ -118,6 +120,7 @@ client.on('interactionCreate', async interaction => {
       }
       case 'sorgu_gsmtotc': {
         const gsm = options.getString('gsm');
+        // API’de parametre adı farklı olabilir, denediğim kadarıyla "gsm" doğru.
         apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.hexnox.pro/sowixapi/gsm.php?gsm=${gsm}`)}`;
         break;
       }
@@ -136,11 +139,8 @@ client.on('interactionCreate', async interaction => {
     let data;
     try {
       data = JSON.parse(proxyData.contents);
-
       if (typeof data === 'string') {
-        try {
-          data = JSON.parse(data);
-        } catch {}
+        data = JSON.parse(data);
       }
     } catch {
       data = proxyData.contents;
