@@ -136,22 +136,40 @@ client.on('interactionCreate', async interaction => {
 
     let finalOutput = '';
 
-    if (typeof data === 'object' && Array.isArray(data.data) && data.data.length > 0) {
-      data.data.forEach((item, index) => {
-        finalOutput += `📦 **Kayıt ${index + 1}**\n`;
-        for (const [key, value] of Object.entries(item)) {
-          if (value && value !== 'YOK' && value !== 'Bilinmiyor') {
-            const niceKey = fieldNames[key] || key;
-            finalOutput += `**${niceKey}**: ${value}\n`;
+    if (typeof data === 'object') {
+      const mainData = data.data ?? data;
+      const outputLines = [];
+
+      if (Array.isArray(mainData) && mainData.length > 0) {
+        mainData.forEach((item, idx) => {
+          outputLines.push(`📦 **Kayıt ${idx + 1}**`);
+          for (const [k, v] of Object.entries(item)) {
+            if (v && v !== 'YOK' && v !== 'Bilinmiyor') {
+              const nice = fieldNames[k] || k;
+              outputLines.push(`**${nice}**: ${v}`);
+            }
+          }
+          outputLines.push('\n');
+        });
+      } else if (typeof mainData === 'object' && Object.keys(mainData).length) {
+        outputLines.push('📦 **Kayıt 1**');
+        for (const [k, v] of Object.entries(mainData)) {
+          if (v && v !== 'YOK' && v !== 'Bilinmiyor') {
+            const nice = fieldNames[k] || k;
+            outputLines.push(`**${nice}**: ${v}`);
           }
         }
-        finalOutput += '\n';
-      });
+        outputLines.push('\n');
+      }
+
+      finalOutput = outputLines.length
+        ? outputLines.join('\n')
+        : '📄 Hiçbir kayıt bulunamadı.';
     } else {
       finalOutput = '📄 Hiçbir kayıt bulunamadı.';
     }
 
-    finalOutput += `👨‍💻 Hazırlayan: **leo.drown**`;
+    finalOutput += `\n👨‍💻 Hazırlayan: **leo.drown**`;
 
     await interaction.editReply(finalOutput);
   } catch (err) {
