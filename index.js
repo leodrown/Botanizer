@@ -130,42 +130,53 @@ client.on('interactionCreate', async interaction => {
         return await interaction.editReply('Bilinmeyen komut 🚨');
     }
 
-  if (!(typeof data === 'object' && Array.isArray(data.data) && data.data.length > 0)) {
-  return await interaction.editReply('📄 Hiçbir kayıt bulunamadı.');
-}
+    const response = await fetch(apiURL);
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    const data = await response.json();
 
-// Çoklu kayıtları parça parça gönderme
-let outputChunks = [];
-let currentChunk = '';
+    let finalOutput = '';
 
-data.data.forEach((item, index) => {
-  let itemText = `📦 **Kayıt ${index + 1}**\n`;
-  for (const [key, value] of Object.entries(item)) {
-    if (value && value !== 'YOK' && value !== 'Bilinmiyor') {
-      const niceKey = fieldNames[key] || key;
-      itemText += `**${niceKey}**: ${value}\n`;
+    if (typeof data === 'object') {
+      const mainData = data.data ?? data;
+      const outputLines = [];
+
+      if (Array.isArray(mainData) && mainData.length > 0) {
+        mainData.forEach((item, idx) => {
+          outputLines.push(`📦 **Kayıt ${idx + 1}**`);
+          for (const [k, v] of Object.entries(item)) {
+            if (v && v !== 'YOK' && v !== 'Bilinmiyor') {
+              const nice = fieldNames[k] || k;
+              outputLines.push(`**${nice}**: ${v}`);
+            }
+          }
+          outputLines.push('\n');
+        });
+      } else if (typeof mainData === 'object' && Object.keys(mainData).length) {
+        outputLines.push('📦 **Kayıt 1**');
+        for (const [k, v] of Object.entries(mainData)) {
+          if (v && v !== 'YOK' && v !== 'Bilinmiyor') {
+            const nice = fieldNames[k] || k;
+            outputLines.push(`**${nice}**: ${v}`);
+          }
+        }
+        outputLines.push('\n');
+      }
+
+      finalOutput = outputLines.length
+        ? outputLines.join('\n')
+        : '📄 Hiçbir kayıt bulunamadı.';
+    } else {
+      finalOutput = '📄 Hiçbir kayıt bulunamadı.';
     }
-  }
-  itemText += '\n';
 
-  if ((currentChunk + itemText).length > 1900) {  // 1900 karakter sınırı var
-    outputChunks.push(currentChunk);
-    currentChunk = itemText;
-  } else {
-    currentChunk += itemText;
+    finalOutput += `\n👨‍💻 Hazırlayan: **leo.drown**`;
+
+    await interaction.editReply(finalOutput);
+  } catch (err) {
+    console.error('Sorgu hatası:', err);
+    await interaction.editReply('🚫 Bir hata oluştu, kişi bulunamadı!');
   }
 });
-
-if (currentChunk) outputChunks.push(currentChunk);
-
-// Parçaları sırayla gönder
-for (let i = 0; i < outputChunks.length; i++) {
-  if (i === 0) {
-    await interaction.editReply(outputChunks[i] + `👨‍💻 Hazırlayan: **leo.drown**`);
-  } else {
-    await interaction.followUp(outputChunks[i]);
-  }
-}  
 
 app.get('/', (req, res) => res.send('Bot çalışıyor 🟢'));
 app.listen(3000, () => console.log('Web sunucusu aktif'));
